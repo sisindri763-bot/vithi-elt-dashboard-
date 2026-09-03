@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 
-const API_BASE = "https://etl-pipeline-lemon.vercel.app/api/v1"
+const API_BASE = (process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/+$/, "") || "http://40.192.71.150:8002") + "/api/v1"
 
 export interface LineageNode {
   id: string
