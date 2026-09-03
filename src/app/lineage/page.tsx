@@ -56,12 +56,9 @@ export default function LineagePage() {
         "Status",
         "Status Key",
         "Last Run At",
-        "Last Run Age", 
         "Duration",
         "Target Rows",
-        "Freshness",
-        "Freshness Lag Hours",
-        "Data Quality"
+        "Freshness"
       ]
 
       const csvData = data.items.map(pipeline => [
@@ -73,12 +70,9 @@ export default function LineagePage() {
         pipeline.status || "",
         pipeline.status_key || "",
         pipeline.last_run_at || "",
-        pipeline.last_run_age || "",
         pipeline.duration || "",
         pipeline.target_rows?.toString() || "0",
-        pipeline.freshness || "",
-        pipeline.freshness_lag_hours?.toString() || "",
-        pipeline.data_quality_display || ""
+        pipeline.freshness || ""
       ])
 
       // Escape CSV fields that contain commas, quotes, or newlines
