@@ -104,3 +104,34 @@
     font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
   }
 }
+
+@media print {
+  nav, aside, header,
+  [data-no-print],
+  .no-print,
+  button,
+  .print\:hidden {
+    display: none !important;
+  }
+
+  body, main {
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 10px !important;
+    background: white !important;
+  }
+
+  .p-6, .p-5 {
+    padding: 10px !important;
+  }
+
+  table, .bg-white {
+    page-break-inside: avoid;
+    box-shadow: none !important;
+    border: 1px solid #e2e8f0 !important;
+  }
+
+  .overflow-x-auto {
+    overflow: visible !important;
+  }
+}

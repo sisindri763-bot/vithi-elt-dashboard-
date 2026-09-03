@@ -59,25 +59,9 @@ export default function Overview() {
   }
 
   const handleExport = () => {
-    if (!overviewData) return
-    const exportPayload = {
-      exported_at: new Date().toISOString(),
-      environment: selectedEnv,
-      preset: selectedPreset,
-      kpis: overviewData.kpis,
-      pillars: overviewData.pillars,
-      pipelines: overviewData.pipelines,
-      incidents: overviewData.incidents,
+    if (typeof window !== 'undefined') {
+      window.print()
     }
-    const blob = new Blob([JSON.stringify(exportPayload, null, 2)], {
-      type: 'application/json',
-    })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `vithi_observability_overview_${selectedPreset}_${Date.now()}.json`
-    a.click()
-    URL.revokeObjectURL(url)
   }
 
   // Pure API Data Mapping
