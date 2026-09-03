@@ -64,11 +64,17 @@ export default function Overview() {
 
   const { data: overviewData, loading, error, refetch } = useOverviewData(
     selectedPreset,
-    15000
+    30000
   )
 
   const handleRefresh = () => {
     refetch()
+  }
+
+  const handleExport = () => {
+    if (typeof window !== 'undefined') {
+      window.print()
+    }
   }
 
   // Pure API Data Mapping
@@ -76,7 +82,7 @@ export default function Overview() {
   const pillarsList = overviewData?.pillars || []
   const incidentsList = overviewData?.incidents || []
 
-  // Dynamic filter application across all components
+  // Instant in-memory filter application
   const filteredPipelines = useMemo(() => {
     return rawPipelines.filter((pipe) => {
       const q = searchQuery.toLowerCase().trim()
@@ -97,7 +103,7 @@ export default function Overview() {
     })
   }, [rawPipelines, searchQuery, selectedPipeline, selectedStatus, selectedEngine])
 
-  // Dynamically computed KPI cards based on active scope
+  // Instant Dynamic KPI Cards calculation
   const dynamicKpiCards = useMemo<MetricCardItem[]>(() => {
     const totalCount = filteredPipelines.length
     const isFilteredFailed = selectedStatus === 'Failed'
@@ -182,47 +188,6 @@ export default function Overview() {
     ]
   }, [filteredPipelines, selectedStatus, selectedPreset])
 
-  // Professional CSV / Excel Report Exporter
-  const handleExport = () => {
-    const timestamp = new Date().toISOString().replace(/[:.]/g, '-')
-    const csvRows = [
-      ['VITHI Data Observability - Executive Overview Report'],
-      ['Exported At', new Date().toLocaleString()],
-      ['Environment', selectedEnv],
-      ['Time Window', selectedPreset],
-      [''],
-      ['=== EXECUTIVE KPI SUMMARY ==='],
-      ['Metric', 'Value', 'Status'],
-      ...dynamicKpiCards.map((k) => [k.title, k.value, k.changeText]),
-      [''],
-      ['=== DATA OBSERVABILITY HEALTH PILLARS ==='],
-      ['Pillar', 'Score (%)', 'Status'],
-      ...pillarsList.map((p) => [p.name || p.id, `${p.score ?? 0}%`, p.status || 'N/A']),
-      [''],
-      ['=== MONITORED PIPELINES ==='],
-      ['Pipeline Name', 'Source Tool', 'ETL Tool', 'Target Tool', 'Status', 'Runs', 'Success Rate', 'Duration'],
-      ...filteredPipelines.map((pipe) => [
-        pipe.pipeline_name,
-        pipe.source_tool || 'Snowflake',
-        pipe.etl_tool || 'dbt',
-        pipe.target_tool || 'Snowflake',
-        pipe.status || 'Active',
-        pipe.runs ?? 1,
-        pipe.success_rate || '100.0%',
-        pipe.avg_duration || pipe.duration || '15s',
-      ]),
-    ]
-
-    const csvContent = 'data:text/csv;charset=utf-8,' + csvRows.map((e) => e.join(',')).join('\n')
-    const encodedUri = encodeURI(csvContent)
-    const link = document.createElement('a')
-    link.setAttribute('href', encodedUri)
-    link.setAttribute('download', `vithi_observability_report_${selectedPreset}_${timestamp}.csv`)
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
-  }
-
   const handleResetFilters = () => {
     setSearchQuery('')
     setSelectedPipeline('All Pipelines')
@@ -234,57 +199,66 @@ export default function Overview() {
   const chartLabels = ['12 AM', '2 AM', '4 AM', '6 AM', '8 AM', '10 AM', '12 PM', '2 PM', '4 PM', '6 PM', '8 PM', '10 PM']
   const isFailed = selectedStatus === 'Failed'
 
-  const runsOverTimeData = chartLabels.map((time: string, idx: number) => {
-    const isLatest = idx === chartLabels.length - 1
-    const runCount = isLatest ? filteredPipelines.length : 0
-    return {
+  const runsOverTimeData = useMemo(() => {
+    return chartLabels.map((time: string, idx: number) => {
+      const isLatest = idx === chartLabels.length - 1
+      const runCount = isLatest ? filteredPipelines.length : 0
+      return {
+        time,
+        success: isFailed ? 0 : runCount,
+        failed: isFailed ? runCount : 0,
+        running: 0,
+        cancelled: 0,
+      }
+    })
+  }, [filteredPipelines, isFailed])
+
+  const successRateData = useMemo(() => {
+    return chartLabels.map((time: string) => ({
       time,
-      success: isFailed ? 0 : runCount,
-      failed: isFailed ? runCount : 0,
-      running: 0,
-      cancelled: 0,
-    }
-  })
+      rate: isFailed ? 0 : (filteredPipelines.length > 0 ? 100.0 : 0),
+    }))
+  }, [filteredPipelines, isFailed])
 
-  const successRateData = chartLabels.map((time: string) => ({
-    time,
-    rate: isFailed ? 0 : (filteredPipelines.length > 0 ? 100.0 : 0),
-  }))
-
-  const incidentsData = chartLabels.map((time: string) => ({
-    time,
-    high: isFailed ? 1 : 0,
-    medium: 0,
-    low: 0,
-  }))
+  const incidentsData = useMemo(() => {
+    return chartLabels.map((time: string) => ({
+      time,
+      high: isFailed ? 1 : 0,
+      medium: 0,
+      low: 0,
+    }))
+  }, [isFailed])
 
   // Active scope tags
-  const activeScopes: { key: string; label: string; onRemove: () => void }[] = []
-  if (selectedStatus && selectedStatus !== 'All Statuses') {
-    activeScopes.push({
-      key: 'status',
-      label: `Status: ${selectedStatus}`,
-      onRemove: () => setSelectedStatus('All Statuses'),
-    })
-  }
-  if (selectedEngine && selectedEngine !== 'All Engines') {
-    activeScopes.push({
-      key: 'engine',
-      label: `Engine: ${selectedEngine}`,
-      onRemove: () => setSelectedEngine('All Engines'),
-    })
-  }
-  if (selectedPipeline && selectedPipeline !== 'All Pipelines') {
-    activeScopes.push({
-      key: 'pipeline',
-      label: `Pipeline: ${selectedPipeline}`,
-      onRemove: () => setSelectedPipeline('All Pipelines'),
-    })
-  }
+  const activeScopes = useMemo(() => {
+    const list: { key: string; label: string; onRemove: () => void }[] = []
+    if (selectedStatus && selectedStatus !== 'All Statuses') {
+      list.push({
+        key: 'status',
+        label: `Status: ${selectedStatus}`,
+        onRemove: () => setSelectedStatus('All Statuses'),
+      })
+    }
+    if (selectedEngine && selectedEngine !== 'All Engines') {
+      list.push({
+        key: 'engine',
+        label: `Engine: ${selectedEngine}`,
+        onRemove: () => setSelectedEngine('All Engines'),
+      })
+    }
+    if (selectedPipeline && selectedPipeline !== 'All Pipelines') {
+      list.push({
+        key: 'pipeline',
+        label: `Pipeline: ${selectedPipeline}`,
+        onRemove: () => setSelectedPipeline('All Pipelines'),
+      })
+    }
+    return list
+  }, [selectedStatus, selectedEngine, selectedPipeline])
 
   return (
     <div className="p-5 sm:p-6 bg-slate-50/70 min-h-screen text-slate-800 space-y-4">
-      {/* 1. Header Bar with Emerald CSV Export Button */}
+      {/* 1. Header Bar with Emerald Export Button */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-2 border-b border-slate-200/80">
         <div>
           <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">Overview</h1>
@@ -302,7 +276,7 @@ export default function Overview() {
             onPresetChange={(p) => setSelectedPreset(p)}
           />
           <RefreshButton onRefresh={handleRefresh} />
-          <ExportButton onClick={handleExport} label="Export CSV" />
+          <ExportButton onClick={handleExport} label="Export" />
         </div>
       </div>
 
@@ -608,7 +582,7 @@ export default function Overview() {
           </div>
         </div>
 
-        {/* Panel 3: Pipeline Monitoring (Clean spacious grid with zero text overlap) */}
+        {/* Panel 3: Pipeline Monitoring */}
         <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/70 shadow-xs flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between pb-2.5 border-b border-slate-100">
@@ -619,7 +593,7 @@ export default function Overview() {
             </div>
 
             <div className="mt-2">
-              {/* Clean Table Header with dedicated column spacing */}
+              {/* Clean Header */}
               <div className="flex items-center justify-between text-[10px] font-bold uppercase text-slate-400 pb-2 border-b border-slate-100 px-1">
                 <span className="w-4/12">Pipeline</span>
                 <span className="w-2/12 text-center">Status</span>
@@ -628,7 +602,7 @@ export default function Overview() {
                 <span className="w-2/12 text-right">Duration</span>
               </div>
 
-              {/* Clean Table Rows */}
+              {/* Clean Rows */}
               <div className="divide-y divide-slate-100/70 text-[11px]">
                 {filteredPipelines.length > 0 ? (
                   filteredPipelines.map((pipe, i) => {
