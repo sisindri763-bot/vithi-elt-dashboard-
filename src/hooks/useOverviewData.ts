@@ -53,7 +53,10 @@ export interface OverviewResponse {
   pillars: PillarItem[]
   items: OverviewPipelineItem[]
   pipelines: OverviewPipelineItem[]
+  incidents: any[]
   summary: Record<string, any>
+  series?: Record<string, any>
+  charts?: Record<string, any>
 }
 
 export function useOverviewData(preset = '24h', refreshInterval = 15000) {
