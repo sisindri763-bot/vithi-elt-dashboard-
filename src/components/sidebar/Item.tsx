@@ -1,7 +1,7 @@
-"use client"
+'use client'
 
-import Link from "next/link"
-import { usePathname } from "next/navigation"
+import Link from 'next/link'
+import { usePathname } from 'next/navigation'
 
 type ItemProps = {
   label: string
@@ -11,25 +11,47 @@ type ItemProps = {
   isCollapsed?: boolean
 }
 
-export default function Item({ label, icon, active, href, isCollapsed = false }: ItemProps) {
+export default function Item({
+  label,
+  icon,
+  active,
+  href,
+  isCollapsed = false,
+}: ItemProps) {
   const pathname = usePathname()
-  const isItemActive = active !== undefined ? active : (href ? (href === '/' ? pathname === '/' : pathname.startsWith(href)) : false)
+  const isItemActive =
+    active !== undefined
+      ? active
+      : href
+      ? href === '/'
+        ? pathname === '/'
+        : pathname.startsWith(href)
+      : false
 
   const content = (
     <div
-      className={`flex items-center ${isCollapsed ? 'justify-center px-2 py-3' : 'gap-3 px-3 py-2'} rounded-xl cursor-pointer transition-all group relative ${
+      className={`flex items-center ${
+        isCollapsed ? 'justify-center px-2 py-2.5' : 'gap-3 px-3 py-2'
+      } rounded-xl cursor-pointer transition-all duration-150 group relative font-semibold text-xs ${
         isItemActive
-          ? "bg-sidebar-primary text-sidebar-primary-foreground shadow-md"
-          : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+          ? 'bg-emerald-500 text-white shadow-xs'
+          : 'text-slate-600 hover:bg-slate-100/80 hover:text-slate-900'
       }`}
       title={isCollapsed ? label : undefined}
     >
-      {icon && <span className="w-5 h-5 flex items-center justify-center">{icon}</span>}
-      {!isCollapsed && <span className="text-sm font-medium">{label}</span>}
-      
-      {/* Tooltip for collapsed state */}
+      {icon && (
+        <span
+          className={`w-5 h-5 flex items-center justify-center ${
+            isItemActive ? 'text-white' : 'text-slate-400 group-hover:text-slate-600'
+          }`}
+        >
+          {icon}
+        </span>
+      )}
+      {!isCollapsed && <span>{label}</span>}
+
       {isCollapsed && (
-        <div className="absolute left-14 bg-gray-900 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50">
+        <div className="absolute left-14 bg-slate-900 text-white text-xs px-2.5 py-1 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50 shadow-md">
           {label}
         </div>
       )}
@@ -37,7 +59,11 @@ export default function Item({ label, icon, active, href, isCollapsed = false }:
   )
 
   if (href) {
-    return <Link href={href} className="block">{content}</Link>
+    return (
+      <Link href={href} className="block">
+        {content}
+      </Link>
+    )
   }
 
   return content
