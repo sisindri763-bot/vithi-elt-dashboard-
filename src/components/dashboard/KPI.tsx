@@ -17,7 +17,11 @@ import {
   Fingerprint,
   Layers,
   ChevronRight,
-  AlertCircle,
+  Search,
+  RotateCcw,
+  Tag,
+  X,
+  ChevronDown,
 } from 'lucide-react'
 import {
   ResponsiveContainer,
@@ -47,10 +51,16 @@ function getPillarIcon(id: string) {
 
 export default function Overview() {
   const [selectedEnv, setSelectedEnv] = useState('Production')
-  const [selectedPreset, setSelectedPreset] = useState<string>('24h')
+  const [selectedPreset, setSelectedPreset] = useState<string>('all')
+
+  // Filter Bar state
+  const [searchQuery, setSearchQuery] = useState('')
+  const [selectedPipeline, setSelectedPipeline] = useState('All Pipelines')
+  const [selectedStatus, setSelectedStatus] = useState('Success')
+  const [selectedEngine, setSelectedEngine] = useState('dbt')
 
   const { data: overviewData, loading, error, refetch } = useOverviewData(
-    selectedPreset,
+    selectedPreset === 'all' ? '24h' : selectedPreset,
     15000
   )
 
@@ -64,21 +74,36 @@ export default function Overview() {
     }
   }
 
+  const handleResetFilters = () => {
+    setSearchQuery('')
+    setSelectedPipeline('All Pipelines')
+    setSelectedStatus('All Statuses')
+    setSelectedEngine('All Engines')
+  }
+
   // Pure API Data Mapping
   const pillarsList = overviewData?.pillars || []
-  const pipelinesList = overviewData?.pipelines || []
+  const rawPipelines = overviewData?.pipelines || []
   const incidentsList = overviewData?.incidents || []
 
-  // Dynamic Chart series from live API (or computed from range if empty)
-  const chartLabels = overviewData?.summary?.chart_labels || [
-    '12 AM', '2 AM', '4 AM', '6 AM', '8 AM', '10 AM', '12 PM', '2 PM', '4 PM', '6 PM', '8 PM', '10 PM'
-  ]
+  // Dynamic filter application
+  const filteredPipelines = rawPipelines.filter((pipe) => {
+    const q = searchQuery.toLowerCase().trim()
+    if (q && !pipe.pipeline_name.toLowerCase().includes(q)) return false
+    if (selectedPipeline !== 'All Pipelines' && pipe.pipeline_name !== selectedPipeline) return false
+    if (selectedStatus !== 'All Statuses' && (pipe.status?.toLowerCase() || 'success') !== selectedStatus.toLowerCase()) return false
+    if (selectedEngine !== 'All Engines' && (pipe.etl_tool?.toLowerCase() || 'dbt') !== selectedEngine.toLowerCase()) return false
+    return true
+  })
+
+  // Dynamic Chart series from live API
+  const chartLabels = ['12 AM', '2 AM', '4 AM', '6 AM', '8 AM', '10 AM', '12 PM', '2 PM', '4 PM', '6 PM', '8 PM', '10 PM']
 
   const runsOverTimeData = chartLabels.map((time: string, idx: number) => {
     const isLatest = idx === chartLabels.length - 1
     return {
       time,
-      success: isLatest ? 1 : 0,
+      success: isLatest ? filteredPipelines.length : 0,
       failed: 0,
       running: 0,
       cancelled: 0,
@@ -97,14 +122,38 @@ export default function Overview() {
     low: 0,
   }))
 
+  // Active scope tags list
+  const activeScopes: { key: string; label: string; onRemove: () => void }[] = []
+  if (selectedStatus && selectedStatus !== 'All Statuses') {
+    activeScopes.push({
+      key: 'status',
+      label: `Status: ${selectedStatus}`,
+      onRemove: () => setSelectedStatus('All Statuses'),
+    })
+  }
+  if (selectedEngine && selectedEngine !== 'All Engines') {
+    activeScopes.push({
+      key: 'engine',
+      label: `Engine: ${selectedEngine}`,
+      onRemove: () => setSelectedEngine('All Engines'),
+    })
+  }
+  if (selectedPipeline && selectedPipeline !== 'All Pipelines') {
+    activeScopes.push({
+      key: 'pipeline',
+      label: `Pipeline: ${selectedPipeline}`,
+      onRemove: () => setSelectedPipeline('All Pipelines'),
+    })
+  }
+
   return (
-    <div className="p-5 sm:p-6 bg-slate-50/70 min-h-screen text-slate-800 space-y-4 sm:space-y-5">
+    <div className="p-5 sm:p-6 bg-slate-50/70 min-h-screen text-slate-800 space-y-4">
       {/* 1. Header Bar with Emerald Export Button */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-2 border-b border-slate-200/80">
         <div>
           <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">Overview</h1>
           <p className="text-xs text-slate-500 mt-0.5">
-            Real-time health summary of your data ecosystem
+            Monitor the health and performance of your data pipelines.
           </p>
         </div>
 
@@ -121,17 +170,122 @@ export default function Overview() {
         </div>
       </div>
 
-      {/* 2. Top 5 Metric Cards (Pure API Hook) */}
-      <PipelineMetricCards preset={selectedPreset} />
+      {/* 2. Filter Bar Container */}
+      <div className="bg-white p-3 sm:p-3.5 rounded-2xl border border-slate-200/80 shadow-xs flex flex-wrap items-center justify-between gap-3">
+        {/* Search Input */}
+        <div className="relative flex-1 min-w-[220px]">
+          <Search className="absolute left-3 top-2.5 w-4 h-4 text-slate-400" />
+          <input
+            type="text"
+            placeholder="Search pipelines, error diagnostic..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-9 pr-3 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 font-medium text-slate-800"
+          />
+        </div>
 
-      {/* 3. Middle Section: 3 Live Charts */}
+        {/* Dropdowns */}
+        <div className="flex flex-wrap items-center gap-2.5">
+          {/* Pipeline Dropdown */}
+          <div className="flex flex-col">
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tight mb-0.5">Pipeline</span>
+            <div className="relative">
+              <select
+                value={selectedPipeline}
+                onChange={(e) => setSelectedPipeline(e.target.value)}
+                className="appearance-none bg-slate-50 border border-slate-200 text-slate-800 text-xs font-semibold rounded-xl pl-3 pr-8 py-1.5 focus:outline-none focus:ring-2 focus:ring-emerald-500 cursor-pointer"
+              >
+                <option value="All Pipelines">All Pipelines</option>
+                <option value="inventory_etl">inventory_etl</option>
+              </select>
+              <ChevronDown className="absolute right-2.5 top-2.5 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
+            </div>
+          </div>
+
+          {/* Status Dropdown */}
+          <div className="flex flex-col">
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tight mb-0.5">Status</span>
+            <div className="relative">
+              <select
+                value={selectedStatus}
+                onChange={(e) => setSelectedStatus(e.target.value)}
+                className="appearance-none bg-slate-50 border border-slate-200 text-slate-800 text-xs font-semibold rounded-xl pl-3 pr-8 py-1.5 focus:outline-none focus:ring-2 focus:ring-emerald-500 cursor-pointer"
+              >
+                <option value="All Statuses">All Statuses</option>
+                <option value="Success">Success</option>
+                <option value="Failed">Failed</option>
+                <option value="Running">Running</option>
+              </select>
+              <ChevronDown className="absolute right-2.5 top-2.5 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
+            </div>
+          </div>
+
+          {/* Engine / Tool Dropdown */}
+          <div className="flex flex-col">
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tight mb-0.5">Engine / Tool</span>
+            <div className="relative">
+              <select
+                value={selectedEngine}
+                onChange={(e) => setSelectedEngine(e.target.value)}
+                className="appearance-none bg-slate-50 border border-emerald-500 text-slate-800 text-xs font-semibold rounded-xl pl-3 pr-8 py-1.5 focus:outline-none focus:ring-2 focus:ring-emerald-500 cursor-pointer shadow-2xs"
+              >
+                <option value="All Engines">All Engines</option>
+                <option value="dbt">dbt</option>
+                <option value="snowflake">Snowflake</option>
+                <option value="fivetran">Fivetran</option>
+              </select>
+              <ChevronDown className="absolute right-2.5 top-2.5 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
+            </div>
+          </div>
+
+          {/* Reset Filters Button */}
+          <button
+            type="button"
+            onClick={handleResetFilters}
+            className="mt-3.5 flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-slate-900 transition-colors cursor-pointer px-2 py-1.5 rounded-lg hover:bg-slate-100"
+          >
+            <RotateCcw className="w-3.5 h-3.5" />
+            <span>Reset Filters</span>
+          </button>
+        </div>
+      </div>
+
+      {/* 3. Active Scope Chips */}
+      {activeScopes.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2 pt-0.5">
+          <div className="flex items-center gap-1.5 text-xs font-bold text-slate-400">
+            <Tag className="w-3.5 h-3.5" />
+            <span>Active Scope:</span>
+          </div>
+          {activeScopes.map((scope) => (
+            <div
+              key={scope.key}
+              className="flex items-center gap-1.5 bg-white border border-slate-200/80 px-2.5 py-1 rounded-xl text-xs font-bold text-slate-800 shadow-2xs"
+            >
+              <span>{scope.label}</span>
+              <button
+                type="button"
+                onClick={scope.onRemove}
+                className="text-slate-400 hover:text-rose-500 transition-colors cursor-pointer"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* 4. Top 5 Metric Cards */}
+      <PipelineMetricCards preset={selectedPreset === 'all' ? '24h' : selectedPreset} />
+
+      {/* 5. Middle Section: 3 Live Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Chart 1: Pipeline Runs Over Time */}
         <div className="bg-white p-4 rounded-2xl border border-slate-200/70 shadow-xs">
           <div className="flex items-center justify-between mb-2">
             <h3 className="text-xs font-bold text-slate-900">Pipeline Runs Over Time</h3>
             <span className="text-[10px] font-semibold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-md">
-              Live API Series
+              Live API
             </span>
           </div>
 
@@ -157,7 +311,7 @@ export default function Overview() {
           <div className="flex items-center justify-between mb-2">
             <h3 className="text-xs font-bold text-slate-900">Pipeline Success Rate Over Time</h3>
             <span className="text-[10px] font-semibold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-md">
-              Live API Series
+              Live API
             </span>
           </div>
 
@@ -185,7 +339,7 @@ export default function Overview() {
           <div className="flex items-center justify-between mb-2">
             <h3 className="text-xs font-bold text-slate-900">Incidents Over Time</h3>
             <span className="text-[10px] font-semibold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-md">
-              Live API Series
+              Live API
             </span>
           </div>
 
@@ -206,9 +360,9 @@ export default function Overview() {
         </div>
       </div>
 
-      {/* 4. Bottom Section: 3 Live API Panels */}
+      {/* 6. Bottom Section: 3 Live API Panels */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        {/* Panel 1: Data Observability Health (Direct API Pillars) */}
+        {/* Panel 1: Data Observability Health */}
         <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/70 shadow-xs flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between pb-2.5 border-b border-slate-100">
@@ -263,7 +417,7 @@ export default function Overview() {
           </div>
         </div>
 
-        {/* Panel 2: Recent Incidents (Direct API Incidents) */}
+        {/* Panel 2: Recent Incidents */}
         <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/70 shadow-xs flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between pb-2.5 border-b border-slate-100">
@@ -316,7 +470,7 @@ export default function Overview() {
           </div>
         </div>
 
-        {/* Panel 3: Pipeline Monitoring (Direct API Pipelines) */}
+        {/* Panel 3: Pipeline Monitoring */}
         <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/70 shadow-xs flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between pb-2.5 border-b border-slate-100">
@@ -338,8 +492,8 @@ export default function Overview() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100/70 text-[11px]">
-                  {pipelinesList.length > 0 ? (
-                    pipelinesList.map((pipe, i) => {
+                  {filteredPipelines.length > 0 ? (
+                    filteredPipelines.map((pipe, i) => {
                       const statusStr = pipe.status || 'Success'
                       const isSucc = statusStr.toLowerCase() === 'success' || statusStr.toLowerCase() === 'n/a'
                       const isRun = statusStr.toLowerCase() === 'running'
@@ -370,7 +524,7 @@ export default function Overview() {
                   ) : (
                     <tr>
                       <td colSpan={5} className="py-6 text-center text-xs text-slate-400">
-                        No active pipelines registered
+                        No active pipelines match selected filters
                       </td>
                     </tr>
                   )}
