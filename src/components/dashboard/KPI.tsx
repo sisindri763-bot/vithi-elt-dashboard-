@@ -16,14 +16,7 @@ import {
   GitBranch,
   Fingerprint,
   Layers,
-  ArrowUpRight,
-  ArrowDownRight,
-  CheckCircle2,
-  AlertTriangle,
-  XCircle,
-  ExternalLink,
   ChevronRight,
-  Activity,
 } from 'lucide-react'
 import {
   ResponsiveContainer,
@@ -39,7 +32,6 @@ import {
 } from 'recharts'
 import Link from 'next/link'
 
-// Mocked realistic 24-hour time-series data for the 3 charts
 const runsOverTimeData = [
   { time: '12 AM', success: 120, failed: 4, running: 8, cancelled: 2 },
   { time: '2 AM', success: 95, failed: 2, running: 5, cancelled: 1 },
@@ -141,7 +133,7 @@ export default function Overview() {
   const [selectedEnv, setSelectedEnv] = useState('Production')
   const [selectedDateRange, setSelectedDateRange] = useState<string>('24h')
 
-  const { data: overviewData, loading, refetch } = useOverviewData(
+  const { data: overviewData, refetch } = useOverviewData(
     selectedDateRange || '24h',
     15000
   )
@@ -154,13 +146,12 @@ export default function Overview() {
     alert('Exporting Overview Observability Report...')
   }
 
-  // Map API pillars if present, else use rich default baseline
   const activePillars =
     overviewData?.pillars && overviewData.pillars.length > 0
       ? overviewData.pillars.map((p, idx) => ({
           id: p.id,
           name: p.name || p.id,
-          score: p.score ?? (defaultPillars[idx]?.score || 90.0),
+          score: p.score ?? (defaultPillars[idx]?.score || 92.0),
           delta: defaultPillars[idx]?.delta || '+1.5%',
           status: p.status || 'Good',
           icon: defaultPillars[idx]?.icon || ShieldCheck,
@@ -168,7 +159,6 @@ export default function Overview() {
         }))
       : defaultPillars
 
-  // Map live pipelines
   const activePipelines =
     overviewData?.pipelines && overviewData.pipelines.length > 0
       ? overviewData.pipelines.map((p) => ({
@@ -188,11 +178,11 @@ export default function Overview() {
         ]
 
   return (
-    <div className="p-6 bg-slate-50/70 min-h-screen text-slate-800 space-y-5">
+    <div className="p-5 sm:p-6 bg-slate-50/70 min-h-screen text-slate-800 space-y-4 sm:space-y-5">
       {/* 1. Header Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-2 border-b border-slate-200/80">
         <div>
-          <h1 className="text-2xl font-black text-slate-900 tracking-tight">Overview</h1>
+          <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">Overview</h1>
           <p className="text-xs text-slate-500 mt-0.5">
             Real-time health summary of your data ecosystem
           </p>
@@ -213,26 +203,23 @@ export default function Overview() {
       {/* 3. Middle Section: 3 Live Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Chart 1: Pipeline Runs Over Time */}
-        <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-2xs">
-          <div className="flex items-center justify-between mb-3">
+        <div className="bg-white p-4 rounded-2xl border border-slate-200/70 shadow-xs">
+          <div className="flex items-center justify-between mb-2">
             <h3 className="text-xs font-bold text-slate-900">Pipeline Runs Over Time</h3>
-            <span className="text-[11px] font-semibold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-md">
+            <span className="text-[10px] font-semibold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-md">
               Last 24 Hours
             </span>
           </div>
 
-          <div className="h-48 w-full text-xs">
+          <div className="h-44 w-full text-xs">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={runsOverTimeData} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
+              <BarChart data={runsOverTimeData} margin={{ top: 8, right: 8, left: -25, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                <XAxis dataKey="time" tick={{ fill: '#94a3b8', fontSize: 10 }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fill: '#94a3b8', fontSize: 10 }} axisLine={false} tickLine={false} />
+                <XAxis dataKey="time" tick={{ fill: '#94a3b8', fontSize: 9 }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fill: '#94a3b8', fontSize: 9 }} axisLine={false} tickLine={false} />
                 <Tooltip />
-                <Legend
-                  wrapperStyle={{ fontSize: '10px', paddingTop: '6px' }}
-                  iconSize={8}
-                />
-                <Bar dataKey="success" name="Success" stackId="a" fill="#10b981" radius={[0, 0, 0, 0]} />
+                <Legend wrapperStyle={{ fontSize: '10px', paddingTop: '4px' }} iconSize={8} />
+                <Bar dataKey="success" name="Success" stackId="a" fill="#10b981" />
                 <Bar dataKey="failed" name="Failed" stackId="a" fill="#ef4444" />
                 <Bar dataKey="running" name="Running" stackId="a" fill="#3b82f6" />
                 <Bar dataKey="cancelled" name="Cancelled" stackId="a" fill="#94a3b8" radius={[2, 2, 0, 0]} />
@@ -242,17 +229,17 @@ export default function Overview() {
         </div>
 
         {/* Chart 2: Pipeline Success Rate Over Time */}
-        <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-2xs">
-          <div className="flex items-center justify-between mb-3">
+        <div className="bg-white p-4 rounded-2xl border border-slate-200/70 shadow-xs">
+          <div className="flex items-center justify-between mb-2">
             <h3 className="text-xs font-bold text-slate-900">Pipeline Success Rate Over Time</h3>
-            <span className="text-[11px] font-semibold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-md">
+            <span className="text-[10px] font-semibold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-md">
               Last 24 Hours
             </span>
           </div>
 
-          <div className="h-48 w-full text-xs">
+          <div className="h-44 w-full text-xs">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={successRateData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+              <AreaChart data={successRateData} margin={{ top: 8, right: 8, left: -20, bottom: 0 }}>
                 <defs>
                   <linearGradient id="emeraldGradient" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#10b981" stopOpacity={0.4} />
@@ -260,8 +247,8 @@ export default function Overview() {
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                <XAxis dataKey="time" tick={{ fill: '#94a3b8', fontSize: 10 }} axisLine={false} tickLine={false} />
-                <YAxis domain={[0, 100]} tick={{ fill: '#94a3b8', fontSize: 10 }} axisLine={false} tickLine={false} unit="%" />
+                <XAxis dataKey="time" tick={{ fill: '#94a3b8', fontSize: 9 }} axisLine={false} tickLine={false} />
+                <YAxis domain={[0, 100]} tick={{ fill: '#94a3b8', fontSize: 9 }} axisLine={false} tickLine={false} unit="%" />
                 <Tooltip />
                 <Area type="monotone" dataKey="rate" stroke="#10b981" strokeWidth={2.5} fillOpacity={1} fill="url(#emeraldGradient)" />
               </AreaChart>
@@ -270,26 +257,23 @@ export default function Overview() {
         </div>
 
         {/* Chart 3: Incidents Over Time */}
-        <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-2xs">
-          <div className="flex items-center justify-between mb-3">
+        <div className="bg-white p-4 rounded-2xl border border-slate-200/70 shadow-xs">
+          <div className="flex items-center justify-between mb-2">
             <h3 className="text-xs font-bold text-slate-900">Incidents Over Time</h3>
-            <span className="text-[11px] font-semibold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-md">
+            <span className="text-[10px] font-semibold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-md">
               Last 24 Hours
             </span>
           </div>
 
-          <div className="h-48 w-full text-xs">
+          <div className="h-44 w-full text-xs">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={incidentsData} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
+              <BarChart data={incidentsData} margin={{ top: 8, right: 8, left: -25, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                <XAxis dataKey="time" tick={{ fill: '#94a3b8', fontSize: 10 }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fill: '#94a3b8', fontSize: 10 }} axisLine={false} tickLine={false} />
+                <XAxis dataKey="time" tick={{ fill: '#94a3b8', fontSize: 9 }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fill: '#94a3b8', fontSize: 9 }} axisLine={false} tickLine={false} />
                 <Tooltip />
-                <Legend
-                  wrapperStyle={{ fontSize: '10px', paddingTop: '6px' }}
-                  iconSize={8}
-                />
-                <Bar dataKey="high" name="High" stackId="a" fill="#ef4444" radius={[0, 0, 0, 0]} />
+                <Legend wrapperStyle={{ fontSize: '10px', paddingTop: '4px' }} iconSize={8} />
+                <Bar dataKey="high" name="High" stackId="a" fill="#ef4444" />
                 <Bar dataKey="medium" name="Medium" stackId="a" fill="#f97316" />
                 <Bar dataKey="low" name="Low" stackId="a" fill="#3b82f6" radius={[2, 2, 0, 0]} />
               </BarChart>
@@ -301,26 +285,24 @@ export default function Overview() {
       {/* 4. Bottom Section: 3 Equal Panels */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Panel 1: Data Observability Health */}
-        <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-2xs flex flex-col justify-between">
+        <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/70 shadow-xs flex flex-col justify-between">
           <div>
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-              <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-                <span>Data Observability Health</span>
-              </h3>
-              <Link href="/freshness" className="text-xs font-bold text-emerald-600 hover:text-emerald-700">
+            <div className="flex items-center justify-between pb-2.5 border-b border-slate-100">
+              <h3 className="text-xs font-bold text-slate-900">Data Observability Health</h3>
+              <Link href="/freshness" className="text-[11px] font-bold text-emerald-600 hover:text-emerald-700">
                 View all
               </Link>
             </div>
 
-            <div className="mt-3 divide-y divide-slate-100/80">
+            <div className="mt-2 divide-y divide-slate-100/70">
               {activePillars.map((p) => {
                 const IconComponent = p.icon
                 const isGood = p.status === 'Good'
                 return (
-                  <div key={p.id} className="py-2.5 flex items-center justify-between gap-3 text-xs">
-                    <div className="flex items-center gap-2.5 w-32 shrink-0">
-                      <IconComponent className={`w-4 h-4 ${p.color}`} />
-                      <span className="font-semibold text-slate-700 capitalize">{p.name}</span>
+                  <div key={p.id} className="py-2 flex items-center justify-between gap-2.5 text-xs">
+                    <div className="flex items-center gap-2 w-28 shrink-0">
+                      <IconComponent className={`w-3.5 h-3.5 ${p.color}`} />
+                      <span className="font-semibold text-slate-700 text-[11px]">{p.name}</span>
                     </div>
 
                     <div className="flex-1 flex items-center gap-2">
@@ -330,17 +312,19 @@ export default function Overview() {
                           style={{ width: `${Math.min(100, p.score)}%` }}
                         />
                       </div>
-                      <div className="text-right shrink-0">
-                        <span className="font-bold text-slate-900 text-xs">{p.score.toFixed(1)}%</span>
-                        <span className="text-[10px] text-emerald-600 font-semibold ml-1">{p.delta}</span>
+                      <div className="text-right shrink-0 text-[11px]">
+                        <span className="font-bold text-slate-900">{p.score.toFixed(1)}%</span>
+                        <span className={`text-[10px] font-semibold ml-1 ${p.delta.startsWith('+') ? 'text-emerald-600' : 'text-rose-600'}`}>
+                          {p.delta}
+                        </span>
                       </div>
                     </div>
 
                     <span
-                      className={`px-2 py-0.5 rounded-md text-[10px] font-bold shrink-0 ${
+                      className={`px-1.5 py-0.5 rounded text-[10px] font-bold shrink-0 ${
                         isGood
-                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/60'
-                          : 'bg-amber-50 text-amber-700 border border-amber-200/60'
+                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/50'
+                          : 'bg-amber-50 text-amber-700 border border-amber-200/50'
                       }`}
                     >
                       {p.status}
@@ -353,92 +337,94 @@ export default function Overview() {
         </div>
 
         {/* Panel 2: Recent Incidents */}
-        <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-2xs flex flex-col justify-between">
+        <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/70 shadow-xs flex flex-col justify-between">
           <div>
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-              <h3 className="text-sm font-bold text-slate-900">Recent Incidents</h3>
-              <Link href="/incidents" className="text-xs font-bold text-emerald-600 hover:text-emerald-700">
+            <div className="flex items-center justify-between pb-2.5 border-b border-slate-100">
+              <h3 className="text-xs font-bold text-slate-900">Recent Incidents</h3>
+              <Link href="/incidents" className="text-[11px] font-bold text-emerald-600 hover:text-emerald-700">
                 View all
               </Link>
             </div>
 
-            <div className="mt-3 space-y-3">
+            <div className="mt-2 space-y-2.5">
               {recentIncidentsList.map((inc) => (
-                <div key={inc.id} className="flex items-start justify-between gap-2.5 text-xs">
-                  <div className="flex items-start gap-2">
-                    <div className="w-2 h-2 rounded-full bg-rose-500 mt-1.5 shrink-0" />
+                <div key={inc.id} className="flex items-start justify-between gap-2 text-xs">
+                  <div className="flex items-start gap-1.5">
+                    <div className="w-1.5 h-1.5 rounded-full bg-rose-500 mt-1 shrink-0" />
                     <div>
-                      <h4 className="font-bold text-slate-900 leading-tight text-xs">{inc.title}</h4>
-                      <p className="text-[11px] text-slate-500 mt-0.5">{inc.desc}</p>
+                      <h4 className="font-bold text-slate-900 leading-tight text-[11px]">{inc.title}</h4>
+                      <p className="text-[10px] text-slate-500 mt-0.5">{inc.desc}</p>
                     </div>
                   </div>
 
                   <div className="text-right shrink-0">
-                    <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold border ${inc.severityColor}`}>
+                    <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold border ${inc.severityColor}`}>
                       {inc.severity}
                     </span>
-                    <div className="text-[10px] text-slate-400 mt-0.5">{inc.timeAgo}</div>
+                    <div className="text-[9px] text-slate-400 mt-0.5">{inc.timeAgo}</div>
                   </div>
                 </div>
               ))}
             </div>
           </div>
 
-          <div className="pt-3 border-t border-slate-100 mt-3">
+          <div className="pt-2.5 border-t border-slate-100 mt-2">
             <Link
               href="/incidents"
-              className="text-xs font-bold text-emerald-600 hover:text-emerald-700 flex items-center gap-1"
+              className="text-[11px] font-bold text-emerald-600 hover:text-emerald-700 flex items-center gap-1"
             >
               <span>View all incidents</span>
-              <ChevronRight className="w-3.5 h-3.5" />
+              <ChevronRight className="w-3 h-3" />
             </Link>
           </div>
         </div>
 
         {/* Panel 3: Pipeline Monitoring */}
-        <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-2xs flex flex-col justify-between">
+        <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/70 shadow-xs flex flex-col justify-between">
           <div>
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-              <h3 className="text-sm font-bold text-slate-900">Pipeline Monitoring</h3>
-              <Link href="/pipelines" className="text-xs font-bold text-emerald-600 hover:text-emerald-700">
+            <div className="flex items-center justify-between pb-2.5 border-b border-slate-100">
+              <h3 className="text-xs font-bold text-slate-900">Pipeline Monitoring</h3>
+              <Link href="/pipelines" className="text-[11px] font-bold text-emerald-600 hover:text-emerald-700">
                 View all
               </Link>
             </div>
 
-            <div className="mt-3 overflow-x-auto">
-              <table className="w-full text-left text-xs text-slate-600">
+            <div className="mt-2">
+              <table className="w-full text-left text-xs table-fixed">
                 <thead className="text-[10px] font-bold uppercase text-slate-400 border-b border-slate-100 pb-1">
                   <tr>
-                    <th className="pb-2">Pipeline</th>
-                    <th className="pb-2">Status</th>
-                    <th className="pb-2 text-right">Runs</th>
-                    <th className="pb-2 text-right">Success</th>
-                    <th className="pb-2 text-right">Duration</th>
+                    <th className="pb-1.5 w-5/12">Pipeline</th>
+                    <th className="pb-1.5 w-2/12">Status</th>
+                    <th className="pb-1.5 w-1/12 text-right">Runs</th>
+                    <th className="pb-1.5 w-2/12 text-right">Success</th>
+                    <th className="pb-1.5 w-2/12 text-right">Duration</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100 text-[11px] font-medium">
+                <tbody className="divide-y divide-slate-100/70 text-[11px]">
                   {activePipelines.map((pipe, i) => {
                     const isSucc = pipe.status.toLowerCase() === 'success'
                     const isRun = pipe.status.toLowerCase() === 'running'
                     return (
-                      <tr key={i} className="hover:bg-slate-50/60 transition-colors">
-                        <td className="py-2.5 font-bold text-slate-900 pr-2">{pipe.name}</td>
-                        <td className="py-2.5">
+                      <tr key={i} className="hover:bg-slate-50/50 transition-colors">
+                        <td className="py-2 font-bold text-slate-900 truncate pr-1" title={pipe.name}>
+                          {pipe.name}
+                        </td>
+                        <td className="py-2">
                           <span
-                            className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
+                            className={`px-1.5 py-0.5 rounded text-[9px] font-bold ${
                               isSucc
-                                ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                                ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/60'
                                 : isRun
-                                ? 'bg-blue-50 text-blue-700 border border-blue-200'
-                                : 'bg-rose-50 text-rose-700 border border-rose-200'
+                                ? 'bg-blue-50 text-blue-700 border border-blue-200/60'
+                                : 'bg-rose-50 text-rose-700 border border-rose-200/60'
                             }`}
                           >
                             {pipe.status}
                           </span>
                         </td>
-                        <td className="py-2.5 text-right text-slate-700 font-semibold">{pipe.runs}</td>
-                        <td className="py-2.5 text-right font-bold text-emerald-600">{pipe.successRate}</td>
-                        <td className="py-2.5 text-right text-slate-500">{pipe.avgDuration}</td>
+                        <td className="py-2 text-right text-slate-700 font-semibold">{pipe.runs}</td>
+                        <td className="py-2 text-right font-bold text-emerald-600">{pipe.successRate}</td>
+                        <td className="py-2 text-right text-slate-500">{pipe.avgDuration}</td>
                       </tr>
                     )
                   })}
@@ -447,13 +433,13 @@ export default function Overview() {
             </div>
           </div>
 
-          <div className="pt-3 border-t border-slate-100 mt-3">
+          <div className="pt-2.5 border-t border-slate-100 mt-2">
             <Link
               href="/pipelines"
-              className="text-xs font-bold text-emerald-600 hover:text-emerald-700 flex items-center gap-1"
+              className="text-[11px] font-bold text-emerald-600 hover:text-emerald-700 flex items-center gap-1"
             >
               <span>View all pipelines</span>
-              <ChevronRight className="w-3.5 h-3.5" />
+              <ChevronRight className="w-3 h-3" />
             </Link>
           </div>
         </div>
