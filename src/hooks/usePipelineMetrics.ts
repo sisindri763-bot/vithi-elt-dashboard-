@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import type { MetricCardItem } from "@/components/pipleline-data/PipelineMetricCards"
 
-const REALTIME_API_URL = (process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/+$/, "") || "http://40.192.71.150:8002") + "/api/v1/overview"
+const REALTIME_API_URL = "/api/v1/overview"
 
 interface UsePipelineMetricsOptions {
   preset?: string
